@@ -91,18 +91,6 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import io
 import sys
 
-if sys.version_info < (3, 0):
-    import codecs
-    # Use UTF8 reader/writer for stdin/stdout
-    # http://stackoverflow.com/a/1169209
-    input_stream = codecs.getreader('utf8')(sys.stdin)
-    output_stream = codecs.getwriter('utf8')(sys.stdout)
-else:
-    # Wrap input/output stream in UTF-8 encoded text wrapper
-    # https://stackoverflow.com/a/16549381
-    input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-    output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
 __version__ = '0.3.1'
 
 try:
@@ -290,6 +278,22 @@ def status(verbose=False):
         return 1
 
 
+def get_streams():
+    if sys.version_info < (3, 0):
+        import codecs
+        # Use UTF8 reader/writer for stdin/stdout
+        # http://stackoverflow.com/a/1169209
+        input_stream = codecs.getreader('utf8')(sys.stdin)
+        output_stream = codecs.getwriter('utf8')(sys.stdout)
+    else:
+        # Wrap input/output stream in UTF-8 encoded text wrapper
+        # https://stackoverflow.com/a/16549381
+        input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+        output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+    return input_stream, output_stream
+
+
 def main():
     parser = ArgumentParser(epilog=__doc__, formatter_class=RawDescriptionHelpFormatter)
     task = parser.add_mutually_exclusive_group()
@@ -341,6 +345,7 @@ def main():
                 nb = read(f, as_version=NO_CONVERT)
             nb = strip_output(nb, args.keep_output, args.keep_count)
             if args.textconv:
+                _, output_stream = get_streams()
                 write(nb, output_stream)
                 output_stream.flush()
             else:
@@ -355,6 +360,7 @@ def main():
             raise
 
     if not args.files:
+        input_stream, output_stream = get_streams()
         try:
             nb = strip_output(read(input_stream, as_version=NO_CONVERT),
                               args.keep_output, args.keep_count)
